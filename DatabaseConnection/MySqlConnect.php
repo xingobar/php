@@ -11,7 +11,7 @@ class MySqlConnect implements IConnectionInformation{
 	private static $hookup ;
 
 
-	public function connect(){
+	public static function connect(){
 
 		try {
 		 	$conn = new PDO("mysql:host=$server;port=$port;dbname=$db",$user, $password,array(PDO::MYSQL_ATTR_INIT_COMMAND=>"SET NAMES utf8"));
