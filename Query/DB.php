@@ -45,6 +45,12 @@ class DB
         return $this;
     }
 
+    public function andWhere($column,$operator = '=',$value){
+        $this->conditionArray[$value]=$value;
+        self::$sql = self::$sql . " and $column $operator :$value  " ;
+        return $this;
+    }
+
     public function whereBetween($column, $firstValue,$secondValue){
         self::$sql = self::$sql . " where $column between $firstValue and $secondValue ";
         return $this;
@@ -118,6 +124,45 @@ class DB
         self::$conn = null;
         return $results;
     }
+
+    public function insert($scopeValues){
+        $multipleArgument = $scopeValues[0];
+        self::$sql = "insert into  " . self::$table . " ";
+        $columns = " ( ";
+        $values = "  values ( ";
+        foreach($multipleArgument as $key => $value){
+           $columns = $columns . $key . ' , ';
+           $values = $values . ':'.$key . ' , ';
+           $this->conditionArray[$key] = $value;
+        }
+        $columns = substr($columns,0,strlen($columns)-2);
+        $columns .= ' ) ';
+        $values = substr($values, 0 , strlen($values) - 2);
+        $values  .= ') ';
+        self::$sql = self::$sql . $columns . $values;
+        $query = self::$conn->prepare(self::$sql);
+        $query->execute($this->conditionArray);
+        $rowCount = $query->rowCount();
+        if($rowCount > 0 ){
+            return 'success';
+        }
+        return 'error';
+    }
+
+    public function update($scopeValues){
+        self::$sql = " update " . self::$table . "  set ";
+        $updatedColumnAndValue = '';
+        foreach($scopeValues as $key=>$value){ 
+            $updatedColumnAndValue = $updatedColumnAndValue . $key . ' = :' . $value . ' , ';
+            $this->conditionArray[$value] = $value;
+        }
+        $updatedColumnAndValue = substr($updatedColumnAndValue,0,strlen($updatedColumnAndValue)-2);
+        self::$sql = self::$sql . $updatedColumnAndValue;
+        $query = self::$conn->prepare(self::$sql);
+        $query->execute($this->conditionArray);
+        $rowCount = $query->rowCount();
+        return $this;
+    }
 }
 echo '<h2>sql where </h2>';
 print_r(DB::table('user')->where('user_name','=','gary')->get());
@@ -129,7 +174,7 @@ echo '<br/>';
 
 echo '<h2>sql where and or where </h2>';
 print_r(DB::table('user')->where('user_name','=','gary')
-        ->orWhere('password','=',md5('gary'))->get());
+        ->orWhere('password','=',md5('gary'))->getAll());
 echo '<br/>';
 
 echo '<h2> sql where between </h2>';
@@ -159,6 +204,18 @@ echo '<br/>';
 
 echo '<h2> sql where not null  </h2>';
 print_r(DB::table('user')->whereNotNull('id')->getAll());
+echo '<br/>';
+
+// echo '<h2> sql insert into  </h2>';
+// print_r(DB::table('user')->insert([
+//     ['user_name' => 'testABC','password' => md5("testABC")], 
+// ]));
+// echo '<br/>';
+
+echo '<h2> sql update  </h2>';
+print_r(DB::table('user')->update(
+    ['password' => 'test']
+)->where('user_name','=','testABC'));
 echo '<br/>';
 
 ?>
